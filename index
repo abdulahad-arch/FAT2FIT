@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Fat2Fit — Client Planner & Diet Tool</title>
+<link rel="icon" href="favicon.ico" />
+<style>
+  /* =========================
+     THEME & BASE LAYOUT
+     ========================= */
+  :root{
+    --bg:#0b0b0b;
+    --panel:#0f0f10;
+    --accent:#e02222;   /* bright red accent */
+    --accent-2:#ff5a5a; /* lighter red for hover */
+    --muted:#bfbfbf;
+    --glass: rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+  html,body{height:100%;margin:0;background: radial-gradient(1200px 1200px at 10% 10%, rgba(255,0,0,0.02), transparent), linear-gradient(180deg,#070708,#0f1112 60%); color:#fff;}
+  .container{max-width:1100px;margin:28px auto;padding:22px;border-radius:14px;background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03)); box-shadow: 0 8px 40px rgba(0,0,0,0.7); display:grid; grid-template-columns: 380px 1fr; gap:20px;}
+  header{grid-column:1/-1; display:flex;align-items:center;gap:14px;}
+  header img.logo{width:84px;height:84px;object-fit:contain;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(#000, #111);}
+  h1{margin:0;font-size:20px;letter-spacing:0.6px;}
+  p.lead{margin:0;color:var(--muted);font-size:13px;}
+
+  /* =========================
+     LEFT PANEL (forms & summary)
+     ========================= */
+  .panel{background:var(--panel); padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);}
+  .section{margin-bottom:16px;}
+  label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted);}
+  input[type="text"], input[type="number"], select {width:100%;padding:10px;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:#fff;}
+  .row{display:flex;gap:8px;}
+  .small{flex:1;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:10px;border:none;cursor:pointer;
+    background:linear-gradient(180deg,var(--accent), #a80000); color:white;font-weight:600;
+    box-shadow: 0 6px 18px rgba(224,34,34,0.12), inset 0 -2px 0 rgba(0,0,0,0.2); transition:transform .14s ease, box-shadow .14s ease;
+  }
+  .btn:hover{transform:translateY(-2px); box-shadow: 0 10px 30px rgba(224,34,34,0.16);}
+  .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600;}
+  .stat{display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));margin-bottom:8px;}
+  .stat small{color:var(--muted);}
+
+  /* =========================
+     RIGHT PANEL (timetable + diet builder)
+     ========================= */
+  .right{display:flex;flex-direction:column;gap:12px;}
+  .timetable{display:grid;grid-template-columns: repeat(6,1fr);gap:8px;}
+  .slot{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.05));padding:8px;border-radius:8px;min-height:48px;border:1px dashed rgba(255,255,255,0.03);cursor:pointer;}
+  .slot.selected{background:linear-gradient(180deg, rgba(224,34,34,0.08), rgba(224,34,34,0.03));border:1px solid rgba(224,34,34,0.25);}
+  .timetable header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;}
+  .meals{display:flex;gap:12px;flex-wrap:wrap;}
+  .food-card{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03));border:1px solid rgba(255,255,255,0.02);}
+  table{width:100%;border-collapse:collapse;}
+  table thead th{font-size:12px;text-align:left;color:var(--muted);padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.03);}
+  table tbody td{padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:14px;}
+  .totals{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-weight:600;}
+
+  /* =========================
+     BACKGROUND IMAGES (replaceable)
+     ========================= */
+  .hero{
+    grid-column:1/-1;height:160px;border-radius:10px; overflow:hidden; position:relative;
+    background-image: url('https://source.unsplash.com/1400x400/?gym,fitness'); background-size:cover;background-position:center; margin-top:6px;
+    box-shadow: inset 0 0 160px rgba(0,0,0,0.45);
+  }
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.6));}
+
+  /* =========================
+     small screens
+     ========================= */
+  @media(max-width:980px){
+    .container{grid-template-columns:1fr; padding:14px;}
+    .hero{height:120px;}
+  }
+
+  /* small helpers */
+  .muted{color:var(--muted);}
+  .right .panel{min-height:120px;}
+  .danger{color:var(--accent);}
+  .success{color:#55ff88;}
+</style>
+</head>
+<body>
+<div class="container" role="main">
+  <header>
+    <!-- Replace 'logo.png' with the actual image name you uploaded in the repo (the image you shared here) -->
+    <img class="logo" src="logo.png" alt="Fat2Fit logo (replace with repo image)" />
+    <div>
+      <h1>Fat2Fit — Client Planner & Diet Builder</h1>
+      <p class="lead">Collect client data, set goals, plan meals & timetable. Export/print or save plans locally.</p>
+    </div>
+  </header>
+
+  <div class="hero" aria-hidden="true"></div>
+
+  <!-- LEFT: forms -->
+  <aside class="panel" aria-label="Client information and summary">
+    <div class="section">
+      <h3 style="margin:0 0 8px 0;">Client Info</h3>
+      <label for="name">Full name</label>
+      <input id="name" type="text" placeholder="John Doe" />
+      <div class="row" style="margin-top:10px;">
+        <div class="small">
+          <label for="age">Age</label>
+          <input id="age" type="number" min="10" max="100" value="30"/>
+        </div>
+        <div style="width:12px"></div>
+        <div class="small">
+          <label for="sex">Sex</label>
+          <select id="sex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div class="small">
+          <label for="height">Height (cm)</label>
+          <input id="height" type="number" min="100" max="250" value="175" />
+        </div>
+        <div style="width:12px"></div>
+        <div class="small">
+          <label for="weight">Weight (kg)</label>
+          <input id="weight" type="number" min="30" max="300" value="80" />
+        </div>
+      </div>
+
+      <label style="margin-top:10px;">Activity level</label>
+      <select id="activity">
+        <option value="1.2">Sedentary (office)</option>
+        <option value="1.375">Lightly active (1-3x/wk)</option>
+        <option value="1.55" selected>Moderately active (3-5x/wk)</option>
+        <option value="1.725">Very active (6-7x/wk)</option>
+      </select>
+
+      <label style="margin-top:10px;">Goal</label>
+      <select id="goal">
+        <option value="lose">Lose fat (calorie deficit)</option>
+        <option value="maintain">Maintain</option>
+        <option value="build">Build muscle (calorie surplus)</option>
+      </select>
+
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn" id="calcBtn">Calculate plan</button>
+        <button class="btn secondary" id="saveClient">Save client</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 style="margin-bottom:8px;">Plan Summary</h3>
+      <div class="stat"><div><small>BMR</small><div id="bmr">—</div></div><div><small>Daily Cal</small><div id="dailyCal">—</div></div></div>
+      <div class="stat"><div><small>Macros (%)</small><div id="macroPerc">—</div></div><div><small>Macros (g)</small><div id="macroGrams">—</div></div></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <div class="chip" id="targetProtein">Protein target: — g</div>
+        <div class="chip" id="notes">Notes: —</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 style="margin-bottom:8px;">Saved Plans</h3>
+      <div id="savedList" style="font-size:14px;"></div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: timetable + diet -->
+  <main class="right">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <h3 style="margin:0;">Weekly Timetable</h3>
+          <small class="muted">Click slots to toggle. Save to profile.</small>
+        </div>
+        <div>
+          <button class="btn secondary" id="clearSlots">Clear</button>
+          <button class="btn" id="saveSlots">Save Slots</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <input id="slotName" type="text" placeholder="e.g., Crossfit / PT with Raj" />
+          <select id="slotDay">
+            <option value="Mon">Mon</option><option value="Tue">Tue</option><option value="Wed">Wed</option><option value="Thu">Thu</option><option value="Fri">Fri</option><option value="Sat">Sat</option>
+          </select>
+          <button class="btn" id="addSlotBtn">Add</button>
+        </div>
+
+        <div class="timetable" id="timetable">
+          <!-- Grid: days as columns -->
+          <!-- We'll use 6 columns (Mon-Sat) and 6 timeblocks -->
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0">Diet Builder</h3>
+        <div>
+          <button class="btn secondary" id="clearDiet">Reset</button>
+          <button class="btn" id="saveDiet">Save Diet</button>
+        </div>
+      </div>
+
+      <div style="margin-top:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <select id="foodSelect">
+            <!-- populated by JS -->
+          </select>
+          <input id="grams" type="number" min="10" value="100" style="width:110px;" />
+          <button class="btn" id="addFood">Add Food</button>
+        </div>
+
+        <div class="meals" id="meals">
+          <div style="width:100%;">
+            <table aria-label="Diet table">
+              <thead><tr><th>Food</th><th>g</th><th>kcal</th><th>Protein (g)</th><th>Carb (g)</th><th>Fat (g)</th><th></th></tr></thead>
+              <tbody id="dietTbody"></tbody>
+            </table>
+
+            <div class="totals" id="dietTotals">
+              <div class="chip">Calories: <strong id="totCal">0</strong></div>
+              <div class="chip">Protein: <strong id="totP">0</strong> g</div>
+              <div class="chip">Carbs: <strong id="totC">0</strong> g</div>
+              <div class="chip">Fat: <strong id="totF">0</strong> g</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:8px;">
+          <button class="btn" id="generatePlan">Generate Full Plan (text)</button>
+          <button class="btn secondary" id="printPlan">Print</button>
+        </div>
+        <pre id="planText" style="margin-top:10px;padding:10px;background:#050505;border-radius:8px;display:none;white-space:pre-wrap;"></pre>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* =======================================================
+   Fat2Fit Planner — Single-file JS (explainable)
+   =======================================================
+   Key features implemented here:
+   - BMR calculation (Mifflin-St Jeor) with activity multiplier
+   - Goal adjustments (deficit/surplus)
+   - Macro split presets depending on goal
+   - Built-in foods DB (per 100g) and meal builder that computes macros per chosen grams
+   - Weekly timetable grid: click to select or add named slots, save to localStorage
+   - Save / load client plans from localStorage
+   - Print/export text plan
+   ======================================================= */
+
+(() => {
+  // ---------- helper utils ----------
+  const $ = id => document.getElementById(id);
+  const format = n => (Math.round(n*100)/100).toLocaleString();
+
+  // ---------- built-in foods database (per 100g)
+  // Values are realistic typical averages; you can expand this DB or load from an API.
+  const foodsDB = {
+    "Chicken breast (100g)": {kcal:165, protein:31, carbs:0, fat:3.6},
+    "Brown rice (cooked) (100g)": {kcal:111, protein:2.6, carbs:23, fat:0.9},
+    "Whole egg (100g)": {kcal:155, protein:13, carbs:1.1, fat:11},
+    "Oats (dry) (100g)": {kcal:389, protein:16.9, carbs:66.3, fat:6.9},
+    "Greek yogurt (100g)": {kcal:59, protein:10, carbs:3.6, fat:0.4},
+    "Salmon (100g)": {kcal:208, protein:20, carbs:0, fat:13},
+    "Banana (100g)": {kcal:89, protein:1.1, carbs:23, fat:0.3},
+    "Almonds (100g)": {kcal:579, protein:21.2, carbs:21.6, fat:49.9},
+    "Broccoli (100g)": {kcal:34, protein:2.8, carbs:7, fat:0.4},
+    "Sweet potato (100g)": {kcal:86, protein:1.6, carbs:20.1, fat:0.1}
+  };
+
+  // Populate food select
+  const foodSelect = $('foodSelect');
+  for (const key of Object.keys(foodsDB)) {
+    const opt = document.createElement('option'); opt.value = key; opt.textContent = key;
+    foodSelect.appendChild(opt);
+  }
+
+  // ---------- Timetable UI ----------
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+  const times = ['6:00','8:00','10:00','12:00','16:00','18:00'];
+  const timetable = $('timetable');
+
+  // Build initial grid (rows = times, columns = days)
+  function buildGrid() {
+    timetable.innerHTML = '';
+    // header labels row (show days)
+    const headerCont = document.createElement('div');
+    headerCont.style.gridColumn = '1/-1';
+    headerCont.innerHTML = `<div style="display:flex;gap:6px;">
+      ${days.map(d => `<div style="flex:1;padding:6px;border-radius:6px;background:rgba(255,255,255,0.02);text-align:center;font-weight:700">${d}</div>`).join('')}
+      </div>`;
+    timetable.appendChild(headerCont);
+
+    // times x days
+    for (let r=0;r<times.length;r++){
+      for (let c=0;c<days.length;c++){
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.dataset.day = days[c];
+        slot.dataset.time = times[r];
+        slot.innerHTML = `<div style="font-weight:700;font-size:12px;">${times[r]}</div><div class="slotName muted" style="font-size:13px;"></div>`;
+        slot.addEventListener('click', () => toggleSlot(slot));
+        timetable.appendChild(slot);
+      }
+    }
+  }
+  buildGrid();
+
+  function toggleSlot(el){
+    if (el.classList.contains('selected')) {
+      el.classList.remove('selected');
+      el.querySelector('.slotName').textContent = '';
+      el.dataset.name = '';
+    } else {
+      const name = prompt('Enter class/trainer name for this slot (leave blank to cancel):');
+      if (!name) return;
+      el.classList.add('selected');
+      el.querySelector('.slotName').textContent = name;
+      el.dataset.name = name;
+    }
+  }
+
+  // Add named slot to first available time of chosen day
+  $('addSlotBtn').addEventListener('click', () => {
+    const name = $('slotName').value.trim();
+    const day = $('slotDay').value;
+    if (!name) { alert('Add a name for the slot'); return; }
+    // find first empty slot for that day
+    const slots = Array.from(document.querySelectorAll('.slot')).filter(s => s.dataset.day === day);
+    const empty = slots.find(s => !s.classList.contains('selected'));
+    if (!empty){ alert('No empty slot found for that day'); return; }
+    empty.classList.add('selected');
+    empty.dataset.name = name;
+    empty.querySelector('.slotName').textContent = name;
+    $('slotName').value = '';
+  });
+
+  // Clear and Save slots
+  $('clearSlots').addEventListener('click', () => {
+    if (!confirm('Clear all timetable slots?')) return;
+    document.querySelectorAll('.slot.selected').forEach(s => {
+      s.classList.remove('selected'); s.dataset.name=''; s.querySelector('.slotName').textContent='';
+    });
+    saveSlotsToStorage();
+  });
+
+  $('saveSlots').addEventListener('click', () => {
+    saveSlotsToStorage();
+    alert('Slots saved to this browser (localStorage).');
+  });
+
+  function saveSlotsToStorage(){
+    const data = Array.from(document.querySelectorAll('.slot.selected')).map(s => ({
+      day: s.dataset.day, time: s.dataset.time, name: s.dataset.name
+    }));
+    localStorage.setItem('fat2fit_slots', JSON.stringify(data));
+    loadSavedList();
+  }
+
+  function loadSlotsFromStorage(){
+    const raw = localStorage.getItem('fat2fit_slots'); if (!raw) return;
+    const arr = JSON.parse(raw);
+    document.querySelectorAll('.slot').forEach(s => { s.classList.remove('selected'); s.dataset.name=''; s.querySelector('.slotName').textContent='';});
+    arr.forEach(item => {
+      const el = Array.from(document.querySelectorAll('.slot')).find(s => s.dataset.day===item.day && s.dataset.time===item.time);
+      if (el){ el.classList.add('selected'); el.dataset.name = item.name; el.querySelector('.slotName').textContent = item.name; }
+    });
+  }
+  loadSlotsFromStorage();
+
+  // ---------- CLIENT CALC: BMR, calories, macros ----------
+  function computeBMR({sex,weight,height,age}){
+    // Mifflin-St Jeor
+    // male: BMR = 10*weight + 6.25*height - 5*age + 5
+    // female: BMR = 10*weight + 6.25*height - 5*age -161
+    const base = 10*weight + 6.25*height - 5*age;
+    return sex === 'male' ? base + 5 : base - 161;
+  }
+
+  function macroSplitByGoal(goal){
+    // return macro distribution percentages (p,c,f)
+    // adapt depending on goal
+    if (goal === 'lose') return {p:35, c:35, f:30};    // higher protein
+    if (goal === 'build') return {p:30, c:45, f:25};   // more carbs for energy
+    return {p:30, c:40, f:30};                         // maintain
+  }
+
+  function gramsFromPerc(calories,totalCal,perc){
+    // perc e.g. 30 (%) -> grams based on kcal per gram: protein/carbs 4 kcal/g, fat 9 kcal/g
+    const kcal = totalCal * (perc/100);
+    return {proteinG: (kcal/4), carbsG: (kcal/4), fatG: (kcal/9)};
+  }
+
+  function calculatePlan(){
+    const name = $('name').value || 'Client';
+    const age = Number($('age').value);
+    const sex = $('sex').value;
+    const height = Number($('height').value);
+    const weight = Number($('weight').value);
+    const activity = Number($('activity').value);
+    const goal = $('goal').value;
+
+    if (!age || !height || !weight) { alert('Enter valid age/height/weight'); return; }
+
+    // BMR
+    const bmr = computeBMR({sex,weight,height,age});
+    // TDEE (approx)
+    const tdee = bmr * activity;
+
+    // Adjust for goal
+    let dailyCal = tdee;
+    let note = 'Maintain calories';
+    if (goal === 'lose') { dailyCal = tdee * 0.82; note = 'Recommended deficit ≈ 18%'; }
+    if (goal === 'build') { dailyCal = tdee * 1.10; note = 'Recommended surplus ≈ 10%'; }
+
+    // Macro %
+    const perc = macroSplitByGoal(goal);
+    // compute grams precisely:
+    // protein and carbs = 4 kcal/g, fat = 9 kcal/g
+    const calProtein = dailyCal * (perc.p/100);
+    const calCarb = dailyCal * (perc.c/100);
+    const calFat = dailyCal * (perc.f/100);
+    const gramsProtein = calProtein / 4;
+    const gramsCarb = calCarb / 4;
+    const gramsFat = calFat / 9;
+
+    // update summary UI
+    $('bmr').textContent = format(bmr) + ' kcal';
+    $('dailyCal').textContent = format(dailyCal) + ' kcal';
+    $('macroPerc').textContent = `${perc.p}% / ${perc.c}% / ${perc.f}% (P/C/F)`;
+    $('macroGrams').textContent = `${format(gramsProtein)} g / ${format(gramsCarb)} g / ${format(gramsFat)} g`;
+    $('targetProtein').textContent = `Protein target: ${format(gramsProtein)} g`;
+    $('notes').textContent = note;
+
+    // save computed plan for use by diet generator
+    const clientPlan = {name,age,sex,height,weight,activity,goal,bmr,tdee,dailyCal,perc,gramsProtein};
+    window.currentPlan = clientPlan;
+    return clientPlan;
+  }
+
+  $('calcBtn').addEventListener('click', () => {
+    calculatePlan();
+    // auto-scroll to diet
+    window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
+  });
+
+  // ---------- DIET BUILDER ----------
+  let dietItems = []; // each: {foodName, grams, kcal, protein, carbs, fat}
+
+  function qPerFood(foodName, grams){
+    // compute macros for grams from per-100g values, with digit-by-digit arithmetic:
+    // Example: if food per100g has X kcal, for grams g => kcal = X * g / 100
+    const base = foodsDB[foodName];
+    // ensure numbers are computed stepwise (digit-by-digit style):
+    const ratio = grams / 100;
+    const kcal = base.kcal * ratio;
+    const protein = base.protein * ratio;
+    const carbs = base.carbs * ratio;
+    const fat = base.fat * ratio;
+    // return numbers with 2 decimal precision
+    return {kcal,protein,carbs,fat};
+  }
+
+  function renderDiet(){
+    const tbody = $('dietTbody'); tbody.innerHTML = '';
+    let totK = 0, totP = 0, totC = 0, totF = 0;
+    dietItems.forEach((it, idx) => {
+      totK += it.kcal; totP += it.protein; totC += it.carbs; totF += it.fat;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${it.foodName}</td><td>${it.grams} g</td><td>${format(it.kcal)}</td><td>${format(it.protein)}</td><td>${format(it.carbs)}</td><td>${format(it.fat)}</td><td><button data-i="${idx}" class="del">✕</button></td>`;
+      tbody.appendChild(tr);
+    });
+    $('totCal').textContent = format(totK);
+    $('totP').textContent = format(totP);
+    $('totC').textContent = format(totC);
+    $('totF').textContent = format(totF);
+
+    // wire up deletes
+    Array.from(document.querySelectorAll('.del')).forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        const i = Number(btn.dataset.i);
+        dietItems.splice(i,1);
+        renderDiet();
+      });
+    });
+  }
+
+  $('addFood').addEventListener('click', ()=>{
+    const f = $('foodSelect').value;
+    const g = Number($('grams').value) || 100;
+    const q = qPerFood(f,g);
+    const item = {foodName:f, grams:g, kcal:q.kcal, protein:q.protein, carbs:q.carbs, fat:q.fat};
+    dietItems.push(item);
+    renderDiet();
+  });
+
+  $('clearDiet').addEventListener('click', ()=>{
+    if (!confirm('Clear diet?')) return;
+    dietItems = []; renderDiet();
+  });
+
+  // generate text plan (combines client info, macros, and diet)
+  $('generatePlan').addEventListener('click', ()=>{
+    if (!window.currentPlan) calculatePlan();
+    const p = window.currentPlan || {};
+    const lines = [];
+    lines.push(`Fat2Fit — Plan for ${p.name || 'Client'}`);
+    lines.push(`Age: ${p.age || '-'}  Sex: ${p.sex || '-'}  Height: ${p.height || '-'} cm  Weight: ${p.weight || '-'} kg`);
+    lines.push(`Goal: ${p.goal || '-'}  BMR: ${format(p.bmr||0)} kcal  Daily target: ${format(p.dailyCal||0)} kcal`);
+    lines.push('');
+    lines.push('Macro targets (kcal -> grams):');
+    if (p.dailyCal && p.perc){
+      const calP = p.dailyCal * (p.perc.p/100);
+      const calC = p.dailyCal * (p.perc.c/100);
+      const calF = p.dailyCal * (p.perc.f/100);
+      lines.push(`Protein: ${format(calP)} kcal => ${format(calP/4)} g`);
+      lines.push(`Carbs:   ${format(calC)} kcal => ${format(calC/4)} g`);
+      lines.push(`Fat:     ${format(calF)} kcal => ${format(calF/9)} g`);
+    }
+
+    lines.push('');
+    lines.push('Planned Diet:');
+    if (dietItems.length===0) lines.push(' - (no foods added)');
+    else {
+      dietItems.forEach(it => {
+        lines.push(` - ${it.foodName}: ${it.grams} g — ${format(it.kcal)} kcal, P ${format(it.protein)}g, C ${format(it.carbs)}g, F ${format(it.fat)}g`);
+      });
+      const totK = dietItems.reduce((s,i)=>s+i.kcal,0);
+      lines.push('');
+      lines.push(`Totals: ${format(totK)} kcal | Protein ${format(dietItems.reduce((s,i)=>s+i.protein,0))} g | Carbs ${format(dietItems.reduce((s,i)=>s+i.carbs,0))} g | Fat ${format(dietItems.reduce((s,i)=>s+i.fat,0))} g`);
+    }
+
+    // Timetable summary
+    lines.push('');
+    lines.push('Weekly Timetable:');
+    const savedSlots = JSON.parse(localStorage.getItem('fat2fit_slots')||'[]');
+    if (!savedSlots.length) lines.push(' - (no slots saved)');
+    else savedSlots.forEach(s => { lines.push(` - ${s.day} ${s.time}: ${s.name}`); });
+
+    $('planText').style.display = 'block';
+    $('planText').textContent = lines.join('\\n');
+  });
+
+  $('printPlan').addEventListener('click', ()=> {
+    // printable text: open new window with content
+    const txt = $('planText').textContent || '';
+    const win = window.open('','_blank','width=800,height=600');
+    win.document.write(`<pre style="font-family:monospace;font-size:14px">${txt}</pre>`);
+    win.document.close();
+    win.focus();
+  });
+
+  // ---------- Save / load client plans ----------
+  function loadSavedList(){
+    const raw = localStorage.getItem('fat2fit_clients');
+    const listEl = $('savedList'); listEl.innerHTML = '';
+    if (!raw) { listEl.textContent = 'No saved clients.'; return; }
+    const arr = JSON.parse(raw);
+    if (!arr.length){ listEl.textContent = 'No saved clients.'; return; }
+    arr.forEach((c, idx) => {
+      const div = document.createElement('div');
+      div.className = 'muted';
+      div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center';
+      div.innerHTML = `<div><strong>${c.name}</strong> • ${c.goal || ''} • ${c.weight}kg</div><div><button data-i="${idx}" class="btn secondary load">Load</button> <button data-i="${idx}" class="btn secondary del">Delete</button></div>`;
+      listEl.appendChild(div);
+    });
+    Array.from(document.querySelectorAll('.load')).forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const i = Number(b.dataset.i);
+        loadClientByIndex(i);
+      });
+    });
+    Array.from(document.querySelectorAll('.del')).forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const i = Number(b.dataset.i);
+        const arr = JSON.parse(localStorage.getItem('fat2fit_clients')||'[]');
+        arr.splice(i,1);
+        localStorage.setItem('fat2fit_clients', JSON.stringify(arr));
+        loadSavedList();
+      });
+    });
+  }
+  loadSavedList();
+
+  $('saveClient').addEventListener('click', ()=>{
+    // gather current fields and computed plan
+    const client = {
+      name: $('name').value || 'Client',
+      age: $('age').value,
+      sex: $('sex').value,
+      height: $('height').value,
+      weight: $('weight').value,
+      activity: $('activity').value,
+      goal: $('goal').value,
+      plan: window.currentPlan || {}
+    };
+    const arr = JSON.parse(localStorage.getItem('fat2fit_clients')||'[]');
+    arr.push(client);
+    localStorage.setItem('fat2fit_clients', JSON.stringify(arr));
+    loadSavedList();
+    alert('Client saved locally (browser).');
+  });
+
+  function loadClientByIndex(i){
+    const arr = JSON.parse(localStorage.getItem('fat2fit_clients')||'[]');
+    const c = arr[i];
+    if (!c) return;
+    $('name').value = c.name || '';
+    $('age').value = c.age || '';
+    $('sex').value = c.sex || 'male';
+    $('height').value = c.height || '';
+    $('weight').value = c.weight || '';
+    $('activity').value = c.activity || '1.55';
+    $('goal').value = c.goal || 'maintain';
+    // re-calc
+    calculatePlan();
+    alert('Client loaded — recalculate diet or timetable as needed.');
+  }
+
+  // On load: try to pre-populate from last client
+  (function preload(){
+    const arr = JSON.parse(localStorage.getItem('fat2fit_clients')||'[]');
+    if (arr.length) {
+      const last = arr[arr.length-1];
+      $('name').value = last.name || '';
+      $('age').value = last.age || '';
+      $('sex').value = last.sex || 'male';
+      $('height').value = last.height || '';
+      $('weight').value = last.weight || '';
+      $('activity').value = last.activity || '1.55';
+      $('goal').value = last.goal || 'maintain';
+      calculatePlan();
+    }
+  })();
+
+  // load saved slots list summary into savedList too
+  function loadSavedListEnhance(){
+    // called after loadSavedList
+    const rawSlots = localStorage.getItem('fat2fit_slots');
+    if (rawSlots){
+      const node = document.createElement('div'); node.style.marginTop='8px'; node.innerHTML = `<small class="muted">You have ${JSON.parse(rawSlots).length} saved timetable entries.</small>`;
+      $('savedList').appendChild(node);
+    }
+  }
+  loadSavedListEnhance();
+
+  // expose small debug
+  window.f2f = {foodsDB, calculatePlan, qPerFood, renderDiet, saveSlotsToStorage};
+})();
+</script>
+</body>
+</html>
