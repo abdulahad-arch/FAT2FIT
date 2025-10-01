@@ -3,658 +3,495 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Fat2Fit — Client Planner & Diet Tool</title>
-<link rel="icon" href="favicon.ico" />
+<title>FAT2FIT — Personalized Plan</title>
+<!-- Unsplash background (web stock gym images). Replace if you want your own images -->
 <style>
-  /* =========================
-     THEME & BASE LAYOUT
-     ========================= */
   :root{
-    --bg:#0b0b0b;
+    --bg:#080808;
     --panel:#0f0f10;
-    --accent:#e02222;   /* bright red accent */
-    --accent-2:#ff5a5a; /* lighter red for hover */
+    --accent:#e02121;
+    --accent-2:#ff5555;
     --muted:#bfbfbf;
-    --glass: rgba(255,255,255,0.03);
   }
-  *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-  html,body{height:100%;margin:0;background: radial-gradient(1200px 1200px at 10% 10%, rgba(255,0,0,0.02), transparent), linear-gradient(180deg,#070708,#0f1112 60%); color:#fff;}
-  .container{max-width:1100px;margin:28px auto;padding:22px;border-radius:14px;background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03)); box-shadow: 0 8px 40px rgba(0,0,0,0.7); display:grid; grid-template-columns: 380px 1fr; gap:20px;}
-  header{grid-column:1/-1; display:flex;align-items:center;gap:14px;}
-  header img.logo{width:84px;height:84px;object-fit:contain;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(#000, #111);}
-  h1{margin:0;font-size:20px;letter-spacing:0.6px;}
-  p.lead{margin:0;color:var(--muted);font-size:13px;}
+  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;}
+  html,body{height:100%;margin:0;background:
+    linear-gradient(180deg, rgba(0,0,0,0.65), rgba(0,0,0,0.9)),
+    url("https://images.unsplash.com/photo-1554284126-aa88f22d8d34?q=80&w=1600&auto=format&fit=crop&ixlib=rb-4.0.3&s=2c3f8f7c9697a7c5e7c2f3b7e9d0c4e4") center/cover no-repeat;
+    color:#fff;}
+  .wrap{max-width:980px;margin:20px auto;padding:18px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25));box-shadow:0 12px 40px rgba(0,0,0,0.7);}
+  header{display:flex;align-items:center;gap:14px}
+  img.logo{width:84px;height:84px;object-fit:contain;border-radius:10px;background:#000;border:1px solid rgba(255,255,255,0.04);}
+  h1{font-size:28px;margin:0;color:var(--accent);letter-spacing:1px;}
+  p.lead{margin:0;color:var(--muted);}
 
-  /* =========================
-     LEFT PANEL (forms & summary)
-     ========================= */
-  .panel{background:var(--panel); padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);}
-  .section{margin-bottom:16px;}
-  label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted);}
-  input[type="text"], input[type="number"], select {width:100%;padding:10px;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:#fff;}
-  .row{display:flex;gap:8px;}
-  .small{flex:1;}
-  .btn{
-    display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:10px;border:none;cursor:pointer;
-    background:linear-gradient(180deg,var(--accent), #a80000); color:white;font-weight:600;
-    box-shadow: 0 6px 18px rgba(224,34,34,0.12), inset 0 -2px 0 rgba(0,0,0,0.2); transition:transform .14s ease, box-shadow .14s ease;
-  }
-  .btn:hover{transform:translateY(-2px); box-shadow: 0 10px 30px rgba(224,34,34,0.16);}
-  .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600;}
-  .stat{display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));margin-bottom:8px;}
-  .stat small{color:var(--muted);}
-
-  /* =========================
-     RIGHT PANEL (timetable + diet builder)
-     ========================= */
-  .right{display:flex;flex-direction:column;gap:12px;}
-  .timetable{display:grid;grid-template-columns: repeat(6,1fr);gap:8px;}
-  .slot{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.05));padding:8px;border-radius:8px;min-height:48px;border:1px dashed rgba(255,255,255,0.03);cursor:pointer;}
-  .slot.selected{background:linear-gradient(180deg, rgba(224,34,34,0.08), rgba(224,34,34,0.03));border:1px solid rgba(224,34,34,0.25);}
-  .timetable header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;}
-  .meals{display:flex;gap:12px;flex-wrap:wrap;}
-  .food-card{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03));border:1px solid rgba(255,255,255,0.02);}
-  table{width:100%;border-collapse:collapse;}
-  table thead th{font-size:12px;text-align:left;color:var(--muted);padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.03);}
-  table tbody td{padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:14px;}
-  .totals{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
-  .chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-weight:600;}
-
-  /* =========================
-     BACKGROUND IMAGES (replaceable)
-     ========================= */
-  .hero{
-    grid-column:1/-1;height:160px;border-radius:10px; overflow:hidden; position:relative;
-    background-image: url('https://source.unsplash.com/1400x400/?gym,fitness'); background-size:cover;background-position:center; margin-top:6px;
-    box-shadow: inset 0 0 160px rgba(0,0,0,0.45);
-  }
-  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.6));}
-
-  /* =========================
-     small screens
-     ========================= */
-  @media(max-width:980px){
-    .container{grid-template-columns:1fr; padding:14px;}
-    .hero{height:120px;}
-  }
-
-  /* small helpers */
-  .muted{color:var(--muted);}
-  .right .panel{min-height:120px;}
-  .danger{color:var(--accent);}
-  .success{color:#55ff88;}
+  .grid{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:16px;}
+  .panel{background:var(--panel);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);}
+  label{display:block;font-size:13px;color:var(--muted);margin-top:8px}
+  input[type="text"], input[type="number"], select{width:100%;padding:9px;border-radius:8px;border:none;background:rgba(255,255,255,0.02);color:#fff}
+  .row{display:flex;gap:8px}
+  .small{flex:1}
+  .btn{background:linear-gradient(180deg,var(--accent),#9b0000);border:none;padding:10px 12px;border-radius:10px;color:#fff;font-weight:700;cursor:pointer;margin-top:12px;box-shadow:0 6px 18px rgba(224,34,34,0.14);transition:transform .14s}
+  .btn:hover{transform:translateY(-3px)}
+  .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  .summary{margin-top:10px}
+  .stat{display:flex;justify-content:space-between;padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03));margin-bottom:8px}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{padding:8px;border:1px solid rgba(255,255,255,0.04);font-size:14px}
+  th{background:rgba(224,34,34,0.12);color:var(--accent-2);text-transform:uppercase;font-size:12px}
+  .explain{white-space:pre-wrap;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;margin-top:8px;color:var(--muted)}
+  .suggestions{margin-top:10px}
+  .download-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .muted{color:var(--muted)}
+  @media(max-width:920px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="container" role="main">
+<div class="wrap" role="main">
   <header>
-    <!-- Replace 'logo.png' with the actual image name you uploaded in the repo (the image you shared here) -->
-    <img class="logo" src="logo.png" alt="Fat2Fit logo (replace with repo image)" />
+    <!-- Replace logo.png with your uploaded file in repo -->
+    <img class="logo" src="logo.png" alt="FAT2FIT logo (replace file if needed)">
     <div>
-      <h1>Fat2Fit — Client Planner & Diet Builder</h1>
-      <p class="lead">Collect client data, set goals, plan meals & timetable. Export/print or save plans locally.</p>
+      <h1>FAT2FIT</h1>
+      <p class="lead">Personalized body transformation plans — diet, macros & suggestions</p>
     </div>
   </header>
 
-  <div class="hero" aria-hidden="true"></div>
+  <div class="grid">
+    <!-- LEFT: client input -->
+    <aside class="panel" aria-label="Client details">
+      <h3 style="margin:0 0 8px 0;color:var(--accent)">Client Details</h3>
 
-  <!-- LEFT: forms -->
-  <aside class="panel" aria-label="Client information and summary">
-    <div class="section">
-      <h3 style="margin:0 0 8px 0;">Client Info</h3>
-      <label for="name">Full name</label>
-      <input id="name" type="text" placeholder="John Doe" />
-      <div class="row" style="margin-top:10px;">
+      <label for="cname">Full name</label>
+      <input id="cname" type="text" placeholder="John Doe">
+
+      <div class="row">
         <div class="small">
           <label for="age">Age</label>
-          <input id="age" type="number" min="10" max="100" value="30"/>
+          <input id="age" type="number" min="12" max="100" value="28">
         </div>
-        <div style="width:12px"></div>
+        <div style="width:10px"></div>
         <div class="small">
           <label for="sex">Sex</label>
-          <select id="sex">
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
+          <select id="sex"><option value="male">Male</option><option value="female">Female</option></select>
         </div>
       </div>
 
-      <div class="row" style="margin-top:10px;">
+      <div class="row">
         <div class="small">
           <label for="height">Height (cm)</label>
-          <input id="height" type="number" min="100" max="250" value="175" />
+          <input id="height" type="number" min="100" max="250" value="175">
         </div>
-        <div style="width:12px"></div>
+        <div style="width:10px"></div>
         <div class="small">
           <label for="weight">Weight (kg)</label>
-          <input id="weight" type="number" min="30" max="300" value="80" />
+          <input id="weight" type="number" min="30" max="300" value="80">
         </div>
       </div>
 
-      <label style="margin-top:10px;">Activity level</label>
+      <label for="activity">Activity level</label>
       <select id="activity">
         <option value="1.2">Sedentary (office)</option>
-        <option value="1.375">Lightly active (1-3x/wk)</option>
-        <option value="1.55" selected>Moderately active (3-5x/wk)</option>
-        <option value="1.725">Very active (6-7x/wk)</option>
+        <option value="1.375">Lightly active</option>
+        <option value="1.55" selected>Moderately active</option>
+        <option value="1.725">Very active</option>
       </select>
 
-      <label style="margin-top:10px;">Goal</label>
+      <label for="goal">Goal</label>
       <select id="goal">
-        <option value="lose">Lose fat (calorie deficit)</option>
-        <option value="maintain">Maintain</option>
-        <option value="build">Build muscle (calorie surplus)</option>
+        <option value="lose">Lose weight / fat</option>
+        <option value="maintain">Maintain weight</option>
+        <option value="gain">Gain muscle / bulk</option>
       </select>
 
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="btn" id="calcBtn">Calculate plan</button>
-        <button class="btn secondary" id="saveClient">Save client</button>
-      </div>
-    </div>
+      <label for="pref">Diet preference</label>
+      <select id="pref">
+        <option value="nonveg">Non-vegetarian</option>
+        <option value="veg">Vegetarian</option>
+      </select>
 
-    <div class="section">
-      <h3 style="margin-bottom:8px;">Plan Summary</h3>
-      <div class="stat"><div><small>BMR</small><div id="bmr">—</div></div><div><small>Daily Cal</small><div id="dailyCal">—</div></div></div>
-      <div class="stat"><div><small>Macros (%)</small><div id="macroPerc">—</div></div><div><small>Macros (g)</small><div id="macroGrams">—</div></div></div>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <div class="chip" id="targetProtein">Protein target: — g</div>
-        <div class="chip" id="notes">Notes: —</div>
-      </div>
-    </div>
-
-    <div class="section">
-      <h3 style="margin-bottom:8px;">Saved Plans</h3>
-      <div id="savedList" style="font-size:14px;"></div>
-    </div>
-  </aside>
-
-  <!-- RIGHT: timetable + diet -->
-  <main class="right">
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <h3 style="margin:0;">Weekly Timetable</h3>
-          <small class="muted">Click slots to toggle. Save to profile.</small>
-        </div>
-        <div>
-          <button class="btn secondary" id="clearSlots">Clear</button>
-          <button class="btn" id="saveSlots">Save Slots</button>
-        </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" id="genBtn">Generate Plan</button>
+        <button class="btn secondary" id="saveBtn">Save (local)</button>
       </div>
 
-      <div style="margin-top:12px;">
-        <div style="display:flex;gap:8px;margin-bottom:8px;">
-          <input id="slotName" type="text" placeholder="e.g., Crossfit / PT with Raj" />
-          <select id="slotDay">
-            <option value="Mon">Mon</option><option value="Tue">Tue</option><option value="Wed">Wed</option><option value="Thu">Thu</option><option value="Fri">Fri</option><option value="Sat">Sat</option>
-          </select>
-          <button class="btn" id="addSlotBtn">Add</button>
-        </div>
-
-        <div class="timetable" id="timetable">
-          <!-- Grid: days as columns -->
-          <!-- We'll use 6 columns (Mon-Sat) and 6 timeblocks -->
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="margin:0">Diet Builder</h3>
-        <div>
-          <button class="btn secondary" id="clearDiet">Reset</button>
-          <button class="btn" id="saveDiet">Save Diet</button>
-        </div>
+      <div class="summary">
+        <div class="stat"><div><small>BMR</small><div id="bmr">— kcal</div></div><div><small>TDEE</small><div id="tdee">— kcal</div></div></div>
+        <div class="stat"><div><small>Daily target</small><div id="daily">— kcal</div></div><div><small>Macros (g P/C/F)</small><div id="macros">—</div></div></div>
       </div>
 
       <div style="margin-top:8px;">
-        <div style="display:flex;gap:8px;margin-bottom:8px;">
-          <select id="foodSelect">
-            <!-- populated by JS -->
-          </select>
-          <input id="grams" type="number" min="10" value="100" style="width:110px;" />
-          <button class="btn" id="addFood">Add Food</button>
-        </div>
+        <small class="muted">Tip: replace hero background or logo by adding your images to the repo and editing the file paths.</small>
+      </div>
+    </aside>
 
-        <div class="meals" id="meals">
-          <div style="width:100%;">
-            <table aria-label="Diet table">
-              <thead><tr><th>Food</th><th>g</th><th>kcal</th><th>Protein (g)</th><th>Carb (g)</th><th>Fat (g)</th><th></th></tr></thead>
-              <tbody id="dietTbody"></tbody>
-            </table>
+    <!-- RIGHT: results -->
+    <main class="panel" aria-label="Plan results">
+      <h3 style="margin:0 0 8px 0;color:var(--accent)">Plan Summary</h3>
 
-            <div class="totals" id="dietTotals">
-              <div class="chip">Calories: <strong id="totCal">0</strong></div>
-              <div class="chip">Protein: <strong id="totP">0</strong> g</div>
-              <div class="chip">Carbs: <strong id="totC">0</strong> g</div>
-              <div class="chip">Fat: <strong id="totF">0</strong> g</div>
-            </div>
+      <div id="explain" class="explain muted">No plan generated yet — enter client details and click "Generate Plan".</div>
+
+      <div id="dietBlock" style="display:none;margin-top:12px;">
+        <h4 style="margin:8px 0;color:var(--accent)">Daily Diet Plan</h4>
+        <div id="dietTableWrap"></div>
+
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:10px;">
+          <div class="suggestions">
+            <h4 style="margin:0;color:var(--accent)">Suggestions</h4>
+            <div id="suggestionsText" class="muted"></div>
+          </div>
+
+          <div style="min-width:260px">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Totals</div>
+            <table><thead><tr><th>Calories</th><th>Protein (g)</th><th>Carbs (g)</th><th>Fat (g)</th></tr></thead>
+              <tbody><tr><td id="totCal">0</td><td id="totP">0</td><td id="totC">0</td><td id="totF">0</td></tr></tbody></table>
           </div>
         </div>
 
-        <div style="margin-top:8px;">
-          <button class="btn" id="generatePlan">Generate Full Plan (text)</button>
-          <button class="btn secondary" id="printPlan">Print</button>
+        <div class="download-row">
+          <button class="btn" id="csvBtn">Download CSV</button>
+          <button class="btn" id="pdfBtn">Download PDF</button>
+          <button class="btn secondary" id="printBtn">Print Plan</button>
         </div>
-        <pre id="planText" style="margin-top:10px;padding:10px;background:#050505;border-radius:8px;display:none;white-space:pre-wrap;"></pre>
       </div>
-    </div>
-
-  </main>
+    </main>
+  </div>
 </div>
 
+<!-- jsPDF for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <script>
-/* =======================================================
-   Fat2Fit Planner — Single-file JS (explainable)
-   =======================================================
-   Key features implemented here:
-   - BMR calculation (Mifflin-St Jeor) with activity multiplier
-   - Goal adjustments (deficit/surplus)
-   - Macro split presets depending on goal
-   - Built-in foods DB (per 100g) and meal builder that computes macros per chosen grams
-   - Weekly timetable grid: click to select or add named slots, save to localStorage
-   - Save / load client plans from localStorage
-   - Print/export text plan
-   ======================================================= */
+/* ===========================
+   FAT2FIT: Plan generator JS
+   ===========================
+   - BMR: Mifflin-St Jeor (step-by-step)
+   - TDEE = BMR * activity multiplier
+   - Goal adjustment: lose => -18%, gain => +10%, maintain => 0%
+   - Macro splits by goal
+   - Distribute daily calories across meals
+   - Veg / Non-veg meal templates (estimate calories & macros per meal)
+   - CSV & PDF exports
+   - Save to localStorage
+   =========================== */
 
-(() => {
-  // ---------- helper utils ----------
+(function(){
+  // Helpers
   const $ = id => document.getElementById(id);
-  const format = n => (Math.round(n*100)/100).toLocaleString();
+  const round2 = n => Math.round(n*100)/100;
+  const toFixed = n => (Math.round(n*100)/100).toLocaleString();
 
-  // ---------- built-in foods database (per 100g)
-  // Values are realistic typical averages; you can expand this DB or load from an API.
-  const foodsDB = {
-    "Chicken breast (100g)": {kcal:165, protein:31, carbs:0, fat:3.6},
-    "Brown rice (cooked) (100g)": {kcal:111, protein:2.6, carbs:23, fat:0.9},
-    "Whole egg (100g)": {kcal:155, protein:13, carbs:1.1, fat:11},
-    "Oats (dry) (100g)": {kcal:389, protein:16.9, carbs:66.3, fat:6.9},
-    "Greek yogurt (100g)": {kcal:59, protein:10, carbs:3.6, fat:0.4},
-    "Salmon (100g)": {kcal:208, protein:20, carbs:0, fat:13},
-    "Banana (100g)": {kcal:89, protein:1.1, carbs:23, fat:0.3},
-    "Almonds (100g)": {kcal:579, protein:21.2, carbs:21.6, fat:49.9},
-    "Broccoli (100g)": {kcal:34, protein:2.8, carbs:7, fat:0.4},
-    "Sweet potato (100g)": {kcal:86, protein:1.6, carbs:20.1, fat:0.1}
+  // Meal slots (sequenced)
+  const mealSlots = ["Morning (Breakfast)","Mid-morning","Lunch","Afternoon Snack","Dinner"];
+
+  // Basic food templates: each item is {name, kcal, protein, carbs, fat} per suggested portion.
+  // These are approximations — you can refine later or replace with a food DB.
+  const templates = {
+    nonveg: {
+      breakfast: {name:"Oats (50g) + 2 Eggs", kcal:360, protein:26, carbs:42, fat:10},
+      mid: {name:"Greek Yogurt + Banana", kcal:180, protein:12, carbs:26, fat:3},
+      lunch: {name:"Grilled Chicken (150g) + Rice (150g) + Veg", kcal:650, protein:55, carbs:80, fat:12},
+      snack: {name:"Almonds (30g) + Fruit", kcal:220, protein:7, carbs:18, fat:14},
+      dinner: {name:"Salmon (150g) + Sweet Potato", kcal:520, protein:45, carbs:45, fat:18}
+    },
+    veg: {
+      breakfast: {name:"Oats (70g) + Milk", kcal:420, protein:18, carbs:64, fat:8},
+      mid: {name:"Greek Yogurt (veg) / Soy Yogurt + Fruit", kcal:170, protein:9, carbs:26, fat:4},
+      lunch: {name:"Paneer (150g) + Brown Rice (150g) + Veg", kcal:650, protein:38, carbs:80, fat:22},
+      snack: {name:"Roasted Chickpeas (50g) + Fruit", kcal:200, protein:12, carbs:26, fat:6},
+      dinner: {name:"Lentil Curry + Quinoa", kcal:520, protein:30, carbs:60, fat:14}
+    }
   };
 
-  // Populate food select
-  const foodSelect = $('foodSelect');
-  for (const key of Object.keys(foodsDB)) {
-    const opt = document.createElement('option'); opt.value = key; opt.textContent = key;
-    foodSelect.appendChild(opt);
+  // Macro split presets (% of daily calories)
+  function macroPercentForGoal(goal){
+    if (goal === 'lose') return {p:35,c:35,f:30};
+    if (goal === 'gain') return {p:30,c:45,f:25};
+    return {p:30,c:40,f:30}; // maintain
   }
 
-  // ---------- Timetable UI ----------
-  const days = ['Mon','Tue','Wed','Thu','Fri','Sat'];
-  const times = ['6:00','8:00','10:00','12:00','16:00','18:00'];
-  const timetable = $('timetable');
-
-  // Build initial grid (rows = times, columns = days)
-  function buildGrid() {
-    timetable.innerHTML = '';
-    // header labels row (show days)
-    const headerCont = document.createElement('div');
-    headerCont.style.gridColumn = '1/-1';
-    headerCont.innerHTML = `<div style="display:flex;gap:6px;">
-      ${days.map(d => `<div style="flex:1;padding:6px;border-radius:6px;background:rgba(255,255,255,0.02);text-align:center;font-weight:700">${d}</div>`).join('')}
-      </div>`;
-    timetable.appendChild(headerCont);
-
-    // times x days
-    for (let r=0;r<times.length;r++){
-      for (let c=0;c<days.length;c++){
-        const slot = document.createElement('div');
-        slot.className = 'slot';
-        slot.dataset.day = days[c];
-        slot.dataset.time = times[r];
-        slot.innerHTML = `<div style="font-weight:700;font-size:12px;">${times[r]}</div><div class="slotName muted" style="font-size:13px;"></div>`;
-        slot.addEventListener('click', () => toggleSlot(slot));
-        timetable.appendChild(slot);
-      }
-    }
-  }
-  buildGrid();
-
-  function toggleSlot(el){
-    if (el.classList.contains('selected')) {
-      el.classList.remove('selected');
-      el.querySelector('.slotName').textContent = '';
-      el.dataset.name = '';
-    } else {
-      const name = prompt('Enter class/trainer name for this slot (leave blank to cancel):');
-      if (!name) return;
-      el.classList.add('selected');
-      el.querySelector('.slotName').textContent = name;
-      el.dataset.name = name;
-    }
+  // Calculate BMR with Mifflin-St Jeor (explicit step-by-step for safety)
+  function calcBMR({sex,weight,height,age}){
+    // base = 10*weight + 6.25*height - 5*age
+    const step1 = 10 * weight;            // 10 * kg
+    const step2 = 6.25 * height;          // 6.25 * cm
+    const step3 = 5 * age;                // 5 * years
+    const base = step1 + step2 - step3;   // sum up
+    const bmr = (sex === 'male') ? base + 5 : base - 161;
+    // return detailed object
+    return {bmr: round2(bmr), steps:{step1,step2,step3,base}};
   }
 
-  // Add named slot to first available time of chosen day
-  $('addSlotBtn').addEventListener('click', () => {
-    const name = $('slotName').value.trim();
-    const day = $('slotDay').value;
-    if (!name) { alert('Add a name for the slot'); return; }
-    // find first empty slot for that day
-    const slots = Array.from(document.querySelectorAll('.slot')).filter(s => s.dataset.day === day);
-    const empty = slots.find(s => !s.classList.contains('selected'));
-    if (!empty){ alert('No empty slot found for that day'); return; }
-    empty.classList.add('selected');
-    empty.dataset.name = name;
-    empty.querySelector('.slotName').textContent = name;
-    $('slotName').value = '';
-  });
-
-  // Clear and Save slots
-  $('clearSlots').addEventListener('click', () => {
-    if (!confirm('Clear all timetable slots?')) return;
-    document.querySelectorAll('.slot.selected').forEach(s => {
-      s.classList.remove('selected'); s.dataset.name=''; s.querySelector('.slotName').textContent='';
-    });
-    saveSlotsToStorage();
-  });
-
-  $('saveSlots').addEventListener('click', () => {
-    saveSlotsToStorage();
-    alert('Slots saved to this browser (localStorage).');
-  });
-
-  function saveSlotsToStorage(){
-    const data = Array.from(document.querySelectorAll('.slot.selected')).map(s => ({
-      day: s.dataset.day, time: s.dataset.time, name: s.dataset.name
-    }));
-    localStorage.setItem('fat2fit_slots', JSON.stringify(data));
-    loadSavedList();
-  }
-
-  function loadSlotsFromStorage(){
-    const raw = localStorage.getItem('fat2fit_slots'); if (!raw) return;
-    const arr = JSON.parse(raw);
-    document.querySelectorAll('.slot').forEach(s => { s.classList.remove('selected'); s.dataset.name=''; s.querySelector('.slotName').textContent='';});
-    arr.forEach(item => {
-      const el = Array.from(document.querySelectorAll('.slot')).find(s => s.dataset.day===item.day && s.dataset.time===item.time);
-      if (el){ el.classList.add('selected'); el.dataset.name = item.name; el.querySelector('.slotName').textContent = item.name; }
-    });
-  }
-  loadSlotsFromStorage();
-
-  // ---------- CLIENT CALC: BMR, calories, macros ----------
-  function computeBMR({sex,weight,height,age}){
-    // Mifflin-St Jeor
-    // male: BMR = 10*weight + 6.25*height - 5*age + 5
-    // female: BMR = 10*weight + 6.25*height - 5*age -161
-    const base = 10*weight + 6.25*height - 5*age;
-    return sex === 'male' ? base + 5 : base - 161;
-  }
-
-  function macroSplitByGoal(goal){
-    // return macro distribution percentages (p,c,f)
-    // adapt depending on goal
-    if (goal === 'lose') return {p:35, c:35, f:30};    // higher protein
-    if (goal === 'build') return {p:30, c:45, f:25};   // more carbs for energy
-    return {p:30, c:40, f:30};                         // maintain
-  }
-
-  function gramsFromPerc(calories,totalCal,perc){
-    // perc e.g. 30 (%) -> grams based on kcal per gram: protein/carbs 4 kcal/g, fat 9 kcal/g
-    const kcal = totalCal * (perc/100);
-    return {proteinG: (kcal/4), carbsG: (kcal/4), fatG: (kcal/9)};
-  }
-
-  function calculatePlan(){
-    const name = $('name').value || 'Client';
+  function computePlan(){
+    // read client fields
+    const name = $('cname').value || 'Client';
     const age = Number($('age').value);
     const sex = $('sex').value;
     const height = Number($('height').value);
     const weight = Number($('weight').value);
     const activity = Number($('activity').value);
-    const goal = $('goal').value;
+    const goal = $('goal').value; // lose / maintain / gain
+    const pref = $('pref').value; // veg / nonveg
 
-    if (!age || !height || !weight) { alert('Enter valid age/height/weight'); return; }
+    if (!age || !height || !weight) { alert('Enter valid age / height / weight'); return; }
 
-    // BMR
-    const bmr = computeBMR({sex,weight,height,age});
-    // TDEE (approx)
-    const tdee = bmr * activity;
+    // BMR step-by-step (Mifflin-St Jeor)
+    const bmrObj = calcBMR({sex,weight,height,age});
+    const BMR = bmrObj.bmr; // kcal/day
 
-    // Adjust for goal
-    let dailyCal = tdee;
+    // TDEE
+    const TDEE = round2(BMR * activity);
+
+    // Goal adjustment
+    let dailyTarget = TDEE;
     let note = 'Maintain calories';
-    if (goal === 'lose') { dailyCal = tdee * 0.82; note = 'Recommended deficit ≈ 18%'; }
-    if (goal === 'build') { dailyCal = tdee * 1.10; note = 'Recommended surplus ≈ 10%'; }
+    if (goal === 'lose'){ dailyTarget = round2(TDEE * 0.82); note = 'Deficit chosen (~18%) for fat loss'; }
+    if (goal === 'gain'){ dailyTarget = round2(TDEE * 1.10); note = 'Surplus chosen (~10%) for muscle gain'; }
 
-    // Macro %
-    const perc = macroSplitByGoal(goal);
-    // compute grams precisely:
-    // protein and carbs = 4 kcal/g, fat = 9 kcal/g
-    const calProtein = dailyCal * (perc.p/100);
-    const calCarb = dailyCal * (perc.c/100);
-    const calFat = dailyCal * (perc.f/100);
-    const gramsProtein = calProtein / 4;
-    const gramsCarb = calCarb / 4;
-    const gramsFat = calFat / 9;
+    // Macro percents and grams (calories to grams: protein/carbs 4 kcal/g, fat 9 kcal/g)
+    const perc = macroPercentForGoal(goal);
+    const calProtein = dailyTarget * (perc.p/100);
+    const calCarbs = dailyTarget * (perc.c/100);
+    const calFat = dailyTarget * (perc.f/100);
+    const gramsProtein = round2(calProtein / 4);
+    const gramsCarbs = round2(calCarbs / 4);
+    const gramsFat = round2(calFat / 9);
 
-    // update summary UI
-    $('bmr').textContent = format(bmr) + ' kcal';
-    $('dailyCal').textContent = format(dailyCal) + ' kcal';
-    $('macroPerc').textContent = `${perc.p}% / ${perc.c}% / ${perc.f}% (P/C/F)`;
-    $('macroGrams').textContent = `${format(gramsProtein)} g / ${format(gramsCarb)} g / ${format(gramsFat)} g`;
-    $('targetProtein').textContent = `Protein target: ${format(gramsProtein)} g`;
-    $('notes').textContent = note;
+    // Water recommendation: typical guideline ~35 ml per kg -> liters
+    const waterMl = round2(weight * 35);
+    const waterL = round2(waterMl / 1000);
 
-    // save computed plan for use by diet generator
-    const clientPlan = {name,age,sex,height,weight,activity,goal,bmr,tdee,dailyCal,perc,gramsProtein};
-    window.currentPlan = clientPlan;
-    return clientPlan;
+    // distribute daily calories across meals (percent of daily)
+    // breakfast 22%, mid 8%, lunch 32%, snack 10%, dinner 28% (example)
+    const mealPercents = [0.22, 0.08, 0.32, 0.10, 0.28];
+
+    // choose templates based on veg / nonveg
+    const bank = (pref === 'veg') ? templates.veg : templates.nonveg;
+
+    // Build meal list by scaling template kcal/macros to hit meal calorie target.
+    const meals = mealSlots.map((slot, idx) => {
+      // pick template for slot
+      const key = (idx===0 ? 'breakfast' : idx===1 ? 'mid' : idx===2 ? 'lunch' : idx===3 ? 'snack' : 'dinner');
+      const tpl = bank[key];
+      // desired calories for this meal
+      const targetMealCal = round2(dailyTarget * mealPercents[idx]);
+      // template calories (approx). We'll scale portion so template kcal matches targetMealCal.
+      const scale = targetMealCal / tpl.kcal;
+      // compute macros by scaling (step-by-step)
+      const kcal = round2(tpl.kcal * scale);
+      const protein = round2(tpl.protein * scale);
+      const carbs = round2(tpl.carbs * scale);
+      const fat = round2(tpl.fat * scale);
+      const nameSuggested = tpl.name + (scale !== 1 ? ` (adjust ~${Math.round(scale*100)}%)` : '');
+      return {slot, name:nameSuggested, kcal, protein, carbs, fat, targetMealCal};
+    });
+
+    // Totals (sum of meals)
+    const totals = meals.reduce((acc,m)=>{
+      acc.cal += m.kcal; acc.p += m.protein; acc.c += m.carbs; acc.f += m.fat; return acc;
+    }, {cal:0,p:0,c:0,f:0});
+    totals.cal = round2(totals.cal); totals.p = round2(totals.p); totals.c = round2(totals.c); totals.f = round2(totals.f);
+
+    // 10-line short explanation about body structure + short plan (concise, actionable)
+    const explainLines = [];
+    explainLines.push(`${name}, quick body & plan summary:`);
+    explainLines.push(`1) Basal Metabolic Rate (BMR) ~ ${BMR} kcal/day — energy burned at rest.`);
+    explainLines.push(`2) Total Daily Energy Expenditure (TDEE) ~ ${TDEE} kcal/day (activity multiplier ${activity}).`);
+    explainLines.push(`3) Goal adjustment: ${note} → daily target ~ ${dailyTarget} kcal.`);
+    explainLines.push(`4) Protein aim: ${gramsProtein} g/day to support muscle & satiety.`);
+    explainLines.push(`5) Carbs: ${gramsCarbs} g/day for energy; Fats: ${gramsFat} g/day for hormones.`);
+    explainLines.push(`6) Focus on progressive resistance training (3-5x/wk) + 1-2 cardio sessions.`);
+    explainLines.push(`7) Prioritize whole foods: lean protein, whole grains, legumes, veg & healthy fats.`);
+    explainLines.push(`8) Sleep & recovery: 7-9 hrs/night; manage stress to aid progress.`);
+    explainLines.push(`9) Track weight & adjust calories weekly by 200-300 kcal if no progress.`);
+
+    // Suggestions text
+    const suggestions = [];
+    suggestions.push(`Drink ~${waterL} L water/day (approx ${waterMl} ml) based on body weight.`);
+    suggestions.push(`Protein target: ${gramsProtein} g/day. Spread across meals (≈${round2(gramsProtein/mealSlots.length)} g/meal).`);
+    suggestions.push(`Aim for 3 main meals + 2 snacks as shown; adjust portions to hit daily calories.`);
+    suggestions.push(`If ${goal === 'lose' ? 'losing' : goal === 'gain' ? 'gaining' : 'maintaining'}: weigh yourself weekly and adjust.`);
+    suggestions.push(`Consider adding a multivitamin if diet lacks variety and consult a nutritionist for special cases.`);
+
+    // Save plan object for exports
+    const planObj = {name,age,sex,height,weight,activity,goal,pref,BMR,TDEE,dailyTarget,perc,gramsProtein,gramsCarbs,gramsFat,waterL,waterMl,meals,totals,explainLines,suggestions};
+
+    // Render to UI
+    renderPlan(planObj);
+
+    // save last plan to localStorage
+    localStorage.setItem('fat2fit_last', JSON.stringify(planObj));
+
+    // return plan for debugging if needed
+    return planObj;
   }
 
-  $('calcBtn').addEventListener('click', () => {
-    calculatePlan();
-    // auto-scroll to diet
-    window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
-  });
+  // RENDER function
+  function renderPlan(plan){
+    // explain (10 lines)
+    $('explain').textContent = plan.explainLines.join('\n');
 
-  // ---------- DIET BUILDER ----------
-  let dietItems = []; // each: {foodName, grams, kcal, protein, carbs, fat}
-
-  function qPerFood(foodName, grams){
-    // compute macros for grams from per-100g values, with digit-by-digit arithmetic:
-    // Example: if food per100g has X kcal, for grams g => kcal = X * g / 100
-    const base = foodsDB[foodName];
-    // ensure numbers are computed stepwise (digit-by-digit style):
-    const ratio = grams / 100;
-    const kcal = base.kcal * ratio;
-    const protein = base.protein * ratio;
-    const carbs = base.carbs * ratio;
-    const fat = base.fat * ratio;
-    // return numbers with 2 decimal precision
-    return {kcal,protein,carbs,fat};
-  }
-
-  function renderDiet(){
-    const tbody = $('dietTbody'); tbody.innerHTML = '';
-    let totK = 0, totP = 0, totC = 0, totF = 0;
-    dietItems.forEach((it, idx) => {
-      totK += it.kcal; totP += it.protein; totC += it.carbs; totF += it.fat;
+    // build diet table
+    const wrap = $('dietTableWrap');
+    wrap.innerHTML = '';
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>Meal time</th><th>Suggested food (portion)</th><th>Calories</th><th>Protein (g)</th><th>Carbs (g)</th><th>Fat (g)</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    plan.meals.forEach(m=>{
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${it.foodName}</td><td>${it.grams} g</td><td>${format(it.kcal)}</td><td>${format(it.protein)}</td><td>${format(it.carbs)}</td><td>${format(it.fat)}</td><td><button data-i="${idx}" class="del">✕</button></td>`;
+      tr.innerHTML = `<td>${m.slot}</td><td style="text-align:left">${m.name}</td><td>${m.kcal}</td><td>${m.protein}</td><td>${m.carbs}</td><td>${m.fat}</td>`;
       tbody.appendChild(tr);
     });
-    $('totCal').textContent = format(totK);
-    $('totP').textContent = format(totP);
-    $('totC').textContent = format(totC);
-    $('totF').textContent = format(totF);
+    table.appendChild(tbody);
+    wrap.appendChild(table);
 
-    // wire up deletes
-    Array.from(document.querySelectorAll('.del')).forEach(btn=>{
-      btn.addEventListener('click', e=>{
-        const i = Number(btn.dataset.i);
-        dietItems.splice(i,1);
-        renderDiet();
-      });
-    });
+    // totals
+    $('totCal').textContent = plan.totals.cal;
+    $('totP').textContent = plan.totals.p;
+    $('totC').textContent = plan.totals.c;
+    $('totF').textContent = plan.totals.f;
+
+    // suggestions
+    $('suggestionsText').innerHTML = plan.suggestions.join('<br>');
+
+    // show block
+    $('dietBlock').style.display = 'block';
+    // store currentPlan for exports
+    window.currentFat2FitPlan = plan;
   }
 
-  $('addFood').addEventListener('click', ()=>{
-    const f = $('foodSelect').value;
-    const g = Number($('grams').value) || 100;
-    const q = qPerFood(f,g);
-    const item = {foodName:f, grams:g, kcal:q.kcal, protein:q.protein, carbs:q.carbs, fat:q.fat};
-    dietItems.push(item);
-    renderDiet();
-  });
-
-  $('clearDiet').addEventListener('click', ()=>{
-    if (!confirm('Clear diet?')) return;
-    dietItems = []; renderDiet();
-  });
-
-  // generate text plan (combines client info, macros, and diet)
-  $('generatePlan').addEventListener('click', ()=>{
-    if (!window.currentPlan) calculatePlan();
-    const p = window.currentPlan || {};
-    const lines = [];
-    lines.push(`Fat2Fit — Plan for ${p.name || 'Client'}`);
-    lines.push(`Age: ${p.age || '-'}  Sex: ${p.sex || '-'}  Height: ${p.height || '-'} cm  Weight: ${p.weight || '-'} kg`);
-    lines.push(`Goal: ${p.goal || '-'}  BMR: ${format(p.bmr||0)} kcal  Daily target: ${format(p.dailyCal||0)} kcal`);
-    lines.push('');
-    lines.push('Macro targets (kcal -> grams):');
-    if (p.dailyCal && p.perc){
-      const calP = p.dailyCal * (p.perc.p/100);
-      const calC = p.dailyCal * (p.perc.c/100);
-      const calF = p.dailyCal * (p.perc.f/100);
-      lines.push(`Protein: ${format(calP)} kcal => ${format(calP/4)} g`);
-      lines.push(`Carbs:   ${format(calC)} kcal => ${format(calC/4)} g`);
-      lines.push(`Fat:     ${format(calF)} kcal => ${format(calF/9)} g`);
-    }
-
-    lines.push('');
-    lines.push('Planned Diet:');
-    if (dietItems.length===0) lines.push(' - (no foods added)');
-    else {
-      dietItems.forEach(it => {
-        lines.push(` - ${it.foodName}: ${it.grams} g — ${format(it.kcal)} kcal, P ${format(it.protein)}g, C ${format(it.carbs)}g, F ${format(it.fat)}g`);
-      });
-      const totK = dietItems.reduce((s,i)=>s+i.kcal,0);
-      lines.push('');
-      lines.push(`Totals: ${format(totK)} kcal | Protein ${format(dietItems.reduce((s,i)=>s+i.protein,0))} g | Carbs ${format(dietItems.reduce((s,i)=>s+i.carbs,0))} g | Fat ${format(dietItems.reduce((s,i)=>s+i.fat,0))} g`);
-    }
-
-    // Timetable summary
-    lines.push('');
-    lines.push('Weekly Timetable:');
-    const savedSlots = JSON.parse(localStorage.getItem('fat2fit_slots')||'[]');
-    if (!savedSlots.length) lines.push(' - (no slots saved)');
-    else savedSlots.forEach(s => { lines.push(` - ${s.day} ${s.time}: ${s.name}`); });
-
-    $('planText').style.display = 'block';
-    $('planText').textContent = lines.join('\\n');
-  });
-
-  $('printPlan').addEventListener('click', ()=> {
-    // printable text: open new window with content
-    const txt = $('planText').textContent || '';
-    const win = window.open('','_blank','width=800,height=600');
-    win.document.write(`<pre style="font-family:monospace;font-size:14px">${txt}</pre>`);
-    win.document.close();
-    win.focus();
-  });
-
-  // ---------- Save / load client plans ----------
-  function loadSavedList(){
-    const raw = localStorage.getItem('fat2fit_clients');
-    const listEl = $('savedList'); listEl.innerHTML = '';
-    if (!raw) { listEl.textContent = 'No saved clients.'; return; }
-    const arr = JSON.parse(raw);
-    if (!arr.length){ listEl.textContent = 'No saved clients.'; return; }
-    arr.forEach((c, idx) => {
-      const div = document.createElement('div');
-      div.className = 'muted';
-      div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center';
-      div.innerHTML = `<div><strong>${c.name}</strong> • ${c.goal || ''} • ${c.weight}kg</div><div><button data-i="${idx}" class="btn secondary load">Load</button> <button data-i="${idx}" class="btn secondary del">Delete</button></div>`;
-      listEl.appendChild(div);
+  // Export CSV
+  function exportCSV(plan){
+    if (!plan || !plan.meals) { alert('Generate a plan first'); return; }
+    let csv = 'Meal time,Food (portion),Calories,Protein (g),Carbs (g),Fat (g)\n';
+    plan.meals.forEach(m=>{
+      // Escape commas in food names by wrapping in quotes
+      csv += `"${m.slot}","${m.name}",${m.kcal},${m.protein},${m.carbs},${m.fat}\n`;
     });
-    Array.from(document.querySelectorAll('.load')).forEach(b=>{
-      b.addEventListener('click', ()=>{
-        const i = Number(b.dataset.i);
-        loadClientByIndex(i);
-      });
-    });
-    Array.from(document.querySelectorAll('.del')).forEach(b=>{
-      b.addEventListener('click', ()=>{
-        const i = Number(b.dataset.i);
-        const arr = JSON.parse(localStorage.getItem('fat2fit_clients')||'[]');
-        arr.splice(i,1);
-        localStorage.setItem('fat2fit_clients', JSON.stringify(arr));
-        loadSavedList();
-      });
-    });
-  }
-  loadSavedList();
-
-  $('saveClient').addEventListener('click', ()=>{
-    // gather current fields and computed plan
-    const client = {
-      name: $('name').value || 'Client',
-      age: $('age').value,
-      sex: $('sex').value,
-      height: $('height').value,
-      weight: $('weight').value,
-      activity: $('activity').value,
-      goal: $('goal').value,
-      plan: window.currentPlan || {}
-    };
-    const arr = JSON.parse(localStorage.getItem('fat2fit_clients')||'[]');
-    arr.push(client);
-    localStorage.setItem('fat2fit_clients', JSON.stringify(arr));
-    loadSavedList();
-    alert('Client saved locally (browser).');
-  });
-
-  function loadClientByIndex(i){
-    const arr = JSON.parse(localStorage.getItem('fat2fit_clients')||'[]');
-    const c = arr[i];
-    if (!c) return;
-    $('name').value = c.name || '';
-    $('age').value = c.age || '';
-    $('sex').value = c.sex || 'male';
-    $('height').value = c.height || '';
-    $('weight').value = c.weight || '';
-    $('activity').value = c.activity || '1.55';
-    $('goal').value = c.goal || 'maintain';
-    // re-calc
-    calculatePlan();
-    alert('Client loaded — recalculate diet or timetable as needed.');
+    csv += `\nTotals, ,${plan.totals.cal},${plan.totals.p},${plan.totals.c},${plan.totals.f}\n`;
+    csv += `\nClient,${plan.name},Age:${plan.age},Sex:${plan.sex},Height:${plan.height}cm,Weight:${plan.weight}kg\n`;
+    csv += `Daily Target,${plan.dailyTarget} kcal\n`;
+    // download
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${(plan.name||'client')}_fat2fit_diet.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
 
-  // On load: try to pre-populate from last client
-  (function preload(){
-    const arr = JSON.parse(localStorage.getItem('fat2fit_clients')||'[]');
-    if (arr.length) {
-      const last = arr[arr.length-1];
-      $('name').value = last.name || '';
-      $('age').value = last.age || '';
-      $('sex').value = last.sex || 'male';
-      $('height').value = last.height || '';
-      $('weight').value = last.weight || '';
-      $('activity').value = last.activity || '1.55';
-      $('goal').value = last.goal || 'maintain';
-      calculatePlan();
-    }
-  })();
+  // Export PDF using jsPDF
+  async function exportPDF(plan){
+    if (!plan || !plan.meals) { alert('Generate a plan first'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'pt',format:'a4'});
+    const left = 40;
+    let y = 40;
+    doc.setFillColor(0,0,0);
+    doc.setFontSize(18);
+    doc.setTextColor(224,34,34);
+    doc.text('FAT2FIT — Personalized Diet Plan', left, y);
+    y += 22;
+    doc.setFontSize(11);
+    doc.setTextColor(200,200,200);
+    doc.text(`Client: ${plan.name}  Age: ${plan.age}  Sex: ${plan.sex}`, left, y); y+=16;
+    doc.text(`Height: ${plan.height} cm  Weight: ${plan.weight} kg  Goal: ${plan.goal}`, left, y); y+=20;
+    doc.text(`Daily target: ${plan.dailyTarget} kcal  (BMR ${plan.BMR} kcal, TDEE ${plan.TDEE} kcal)`, left, y); y+=20;
 
-  // load saved slots list summary into savedList too
-  function loadSavedListEnhance(){
-    // called after loadSavedList
-    const rawSlots = localStorage.getItem('fat2fit_slots');
-    if (rawSlots){
-      const node = document.createElement('div'); node.style.marginTop='8px'; node.innerHTML = `<small class="muted">You have ${JSON.parse(rawSlots).length} saved timetable entries.</small>`;
-      $('savedList').appendChild(node);
-    }
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(left, y, 560, y); y+=12;
+
+    doc.setFontSize(12);
+    // table header
+    doc.setTextColor(255,255,255);
+    doc.text('Meal', left, y); doc.text('Food (portion)', left+100, y); doc.text('Cal', left+360, y); doc.text('P', left+410, y); doc.text('C', left+455, y); doc.text('F', left+500, y);
+    y+=10;
+    doc.setLineWidth(0.3); doc.line(left, y, 560, y); y+=12;
+    // rows
+    doc.setFontSize(11);
+    plan.meals.forEach(m=>{
+      if (y > 750){ doc.addPage(); y = 40; } // new page if needed
+      doc.text(m.slot, left, y);
+      // wrap food name if long
+      doc.text(m.name, left+100, y, {maxWidth:240});
+      doc.text(String(m.kcal), left+360, y);
+      doc.text(String(m.protein), left+410, y);
+      doc.text(String(m.carbs), left+455, y);
+      doc.text(String(m.fat), left+500, y);
+      y+=18;
+    });
+
+    y += 8;
+    doc.text('Totals:', left, y);
+    doc.text(String(plan.totals.cal), left+360, y);
+    doc.text(String(plan.totals.p), left+410, y);
+    doc.text(String(plan.totals.c), left+455, y);
+    doc.text(String(plan.totals.f), left+500, y);
+    y+=22;
+
+    doc.setFontSize(11);
+    doc.text('Suggestions:', left, y); y+=14;
+    plan.suggestions.forEach(s=>{
+      if (y > 760){ doc.addPage(); y = 40; }
+      // simple wrap
+      const lines = doc.splitTextToSize(s, 480);
+      doc.text(lines, left, y);
+      y += (lines.length * 12) + 6;
+    });
+
+    doc.save(`${(plan.name||'client')}_fat2fit_plan.pdf`);
   }
-  loadSavedListEnhance();
 
-  // expose small debug
-  window.f2f = {foodsDB, calculatePlan, qPerFood, renderDiet, saveSlotsToStorage};
+  // Load saved last plan if exists
+  function loadLast(){
+    const raw = localStorage.getItem('fat2fit_last');
+    if (!raw) return;
+    try{
+      const plan = JSON.parse(raw);
+      window.currentFat2FitPlan = plan;
+      renderPlan(plan);
+    }catch(e){}
+  }
+
+  // Print plan (simple)
+  function printPlan(){
+    if (!window.currentFat2FitPlan){ alert('Generate a plan first'); return; }
+    const p = window.currentFat2FitPlan;
+    // open new window and render simple printable HTML
+    const w = window.open('','_blank','width=900,height=700');
+    let html = `<html><head><title>FAT2FIT Plan</title><style>body{font-family:Arial;color:#111;background:#fff;padding:20px}h2{color:#b30000}</style></head><body>`;
+    html += `<h2>FAT2FIT — Diet Plan for ${p.name}</h2>`;
+    html += `<p>Daily target: ${p.dailyTarget} kcal (BMR ${p.BMR} kcal, TDEE ${p.TDEE} kcal)</p>`;
+    html += `<table border="1" cellpadding="8" cellspacing="0"><tr><th>Meal</th><th>Food (portion)</th><th>Cal</th><th>P (g)</th><th>C (g)</th><th>F (g)</th></tr>`;
+    p.meals.forEach(m => {
+      html += `<tr><td>${m.slot}</td><td>${m.name}</td><td>${m.kcal}</td><td>${m.protein}</td><td>${m.carbs}</td><td>${m.fat}</td></tr>`;
+    });
+    html += `</table>`;
+    html += `<h3>Suggestions</h3><ul>`;
+    p.suggestions.forEach(s=> html += `<li>${s}</li>`);
+    html += `</ul></body></html>`;
+    w.document.write(html); w.document.close();
+    w.focus();
+    // optionally call print automatically:
+    // w.print();
+  }
+
+  // Wire up buttons
+  $('genBtn').addEventListener('click', ()=> computePlan());
+  $('csvBtn').addEventListener('click', ()=> exportCSV(window.currentFat2FitPlan));
+  $('pdfBtn').addEventListener('click', ()=> exportPDF(window.currentFat2FitPlan));
+  $('printBtn').addEventListener('click', ()=> printPlan());
+  $('saveBtn').addEventListener('click', ()=> {
+    if (!window.currentFat2FitPlan) { alert('Generate first'); return; }
+    const arr = JSON.parse(localStorage.getItem('fat2fit_archive')||'[]');
+    arr.push(window.currentFat2FitPlan);
+    localStorage.setItem('fat2fit_archive', JSON.stringify(arr));
+    alert('Plan saved in browser (local).');
+  });
+
+  // Initialize: load last
+  loadLast();
+
 })();
 </script>
 </body>
